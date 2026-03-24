@@ -1,324 +1,119 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Glitch Runner - Mock Demo</title>
-  <style>
-    :root {
-      --bg: #06070d;
-      --cyan: #00f6ff;
-      --magenta: #ff36d6;
-      --yellow: #ffe45b;
-      --red: #ff4d6d;
-      --panel: rgba(5, 10, 25, 0.72);
-      --white: #eafcff;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      height: 100%;
-      background: radial-gradient(circle at top, #12172c 0%, #090b13 35%, #04050a 100%);
-      color: var(--white);
-      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
-      overflow: hidden;
-    }
-
-    .frame {
-      width: 100vw;
-      height: 100vh;
-      display: grid;
-      place-items: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    canvas {
-      width: min(100vw, 1200px);
-      height: min(100vh, 675px);
-      aspect-ratio: 16 / 9;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(4,6,16,1) 0%, rgba(7,8,18,1) 45%, rgba(9,3,20,1) 100%);
-      box-shadow:
-        0 0 0 2px rgba(0,246,255,0.08),
-        0 0 30px rgba(0,246,255,0.15),
-        0 0 80px rgba(255,54,214,0.12);
-      image-rendering: auto;
-    }
-
-    .hud {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .hud-inner {
-      width: min(100vw, 1200px);
-      height: min(100vh, 675px);
-      position: relative;
-    }
-
-    .score-box,
-    .phase-box,
-    .controls-box,
-    .turbo-wrap,
-    .warning,
-    .overlay,
-    .legend {
-      position: absolute;
-      backdrop-filter: blur(8px);
-      background: var(--panel);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 0 22px rgba(0, 246, 255, 0.07);
-    }
-
-    .score-box,
-    .phase-box,
-    .controls-box,
-    .legend {
-      padding: 10px 14px;
-      border-radius: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      font-size: 12px;
-    }
-
-    .score-box { top: 18px; left: 18px; }
-    .phase-box { top: 18px; right: 18px; }
-    .controls-box { left: 18px; bottom: 18px; max-width: 330px; line-height: 1.5; }
-    .legend { right: 18px; bottom: 18px; max-width: 270px; line-height: 1.45; }
-
-    .score-number,
-    .phase-number,
-    .meter-label {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      margin-top: 4px;
-    }
-
-    .score-number { color: var(--cyan); }
-    .phase-number { color: var(--magenta); }
-
-    .turbo-wrap {
-      left: 50%;
-      bottom: 18px;
-      transform: translateX(-50%);
-      width: min(440px, calc(100% - 220px));
-      padding: 12px 14px 14px;
-      border-radius: 16px;
-    }
-
-    .meter-label {
-      font-size: 13px;
-      margin: 0 0 8px;
-      color: var(--yellow);
-      text-transform: uppercase;
-      letter-spacing: 0.22em;
-    }
-
-    .meter {
-      height: 18px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.08);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .meter-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #ffd84d 0%, #fff08e 45%, #ffffff 100%);
-      box-shadow: 0 0 20px rgba(255, 228, 91, 0.45);
-      transition: width 0.12s linear;
-    }
-
-    .warning {
-      left: 18px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 54px;
-      height: 180px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      color: white;
-      font-size: 11px;
-      letter-spacing: 0.25em;
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      opacity: 0;
-      transition: opacity 0.12s linear, box-shadow 0.12s linear, background 0.12s linear;
-    }
-
-    .warning.active {
-      opacity: 1;
-      background: rgba(255, 77, 109, 0.18);
-      box-shadow: 0 0 26px rgba(255, 77, 109, 0.35);
-      border-color: rgba(255, 77, 109, 0.35);
-      animation: pulse 0.6s infinite alternate;
-    }
-
-    .overlay {
-      inset: 0;
-      display: none;
-      place-items: center;
-      background: rgba(4, 7, 16, 0.45);
-      border-radius: 18px;
-    }
-
-    .overlay.show { display: grid; }
-
-    .panel {
-      width: min(560px, calc(100% - 40px));
-      padding: 26px;
-      border-radius: 22px;
-      background: rgba(6, 11, 24, 0.9);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 0 32px rgba(0, 246, 255, 0.12);
-      text-align: center;
-    }
-
-    .title {
-      margin: 0 0 10px;
-      font-size: clamp(28px, 4vw, 44px);
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--cyan);
-      text-shadow: 0 0 18px rgba(0,246,255,0.35);
-    }
-
-    .subtitle {
-      margin: 0 0 18px;
-      color: #b8dbff;
-      line-height: 1.6;
-      font-size: 15px;
-    }
-
-    .panel p {
-      margin: 8px 0;
-      color: #e2ebff;
-      line-height: 1.55;
-    }
-
-    .keys {
-      color: var(--yellow);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-    }
-
-    .button-row {
-      margin-top: 18px;
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      pointer-events: auto;
-    }
-
-    button {
-      pointer-events: auto;
-      border: 0;
-      cursor: pointer;
-      padding: 12px 18px;
-      border-radius: 999px;
-      font-size: 14px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      font-weight: 700;
-      background: linear-gradient(90deg, rgba(0,246,255,0.18), rgba(255,54,214,0.18));
-      color: white;
-      box-shadow: 0 0 18px rgba(0,246,255,0.1);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 0 24px rgba(255,54,214,0.18);
-    }
-
-    .scanlines::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255,255,255,0.02) 0px,
-        rgba(255,255,255,0.02) 1px,
-        transparent 2px,
-        transparent 4px
-      );
-      pointer-events: none;
-      mix-blend-mode: soft-light;
-      opacity: 0.5;
-      border-radius: 18px;
-    }
-
-    @keyframes pulse {
-      from { transform: translateY(-50%) scale(1); }
-      to { transform: translateY(-50%) scale(1.03); }
-    }
-
-    @media (max-width: 900px) {
-      .controls-box, .legend { display: none; }
-      .turbo-wrap { width: calc(100% - 40px); }
-    }
-  </style>
+  <title>Neon Drifter 2049</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="frame">
-    <canvas id="game" width="1280" height="720" class="scanlines"></canvas>
+    <canvas id="game" width="1280" height="720" aria-label="Neon Drifter 2049"></canvas>
+    <div class="crt-overlay" aria-hidden="true"></div>
 
     <div class="hud">
       <div class="hud-inner">
-        <div class="score-box">
-          Score
-          <div class="score-number" id="score">000000</div>
+        <div class="hud-card score-box">
+          <div class="hud-label">Score</div>
+          <div class="hud-value accent-cyan" id="score">000000</div>
+          <div class="hud-subvalue" id="timeAlive">00:00</div>
         </div>
 
-        <div class="phase-box">
-          Phase
-          <div class="phase-number" id="phase">01</div>
+        <div class="hud-card phase-box">
+          <div class="hud-label">Phase</div>
+          <div class="hud-value accent-magenta" id="phaseValue">01</div>
+          <div class="hud-subvalue" id="phaseName">Warmup Drift</div>
+          <div class="combo-line" id="comboValue">Combo x1.0</div>
         </div>
 
-        <div class="controls-box">
-          <strong>Controles</strong><br>
-          W / ↑ = carril superior<br>
-          S / ↓ = carril inferior<br>
-          <span class="keys">ESPACIO</span> = Turbo<br>
-          <span class="keys">ESC</span> = Pausa
+        <div class="hud-card integrity-box">
+          <div class="hud-label">Integrity</div>
+          <div class="meter compact">
+            <div class="meter-fill integrity-fill" id="integrityFill"></div>
+          </div>
+          <div class="hud-subvalue" id="integrityValue">100 / 100</div>
         </div>
 
-        <div class="legend">
-          <strong>Mock jugable</strong><br>
-          Cian = jugador<br>
-          Amarillo = Data Scrap<br>
-          Magenta = obstáculo / puerta láser<br>
-          Rojo = Glitch Wall
+        <div class="hud-card form-box">
+          <div class="hud-label">Current Form</div>
+          <div class="form-badges">
+            <div class="form-badge" data-form-badge="circle">Circle</div>
+            <div class="form-badge" data-form-badge="triangle">Triangle</div>
+            <div class="form-badge" data-form-badge="square">Square</div>
+          </div>
+          <div class="hud-subvalue" id="shapeName">Triangle</div>
         </div>
 
-        <div class="warning" id="warning">WARNING</div>
-
-        <div class="turbo-wrap">
-          <div class="meter-label" id="meterLabel">Turbo Meter — 0%</div>
-          <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+        <div class="hud-card pressure-box">
+          <div class="hud-label">Wall Pressure</div>
+          <div class="meter compact">
+            <div class="meter-fill pressure-fill" id="pressureFill"></div>
+          </div>
+          <div class="hud-subvalue" id="pressureValue">Stable 0%</div>
         </div>
 
-        <div class="overlay show" id="startOverlay">
-          <div class="panel">
-            <h1 class="title">Glitch Runner</h1>
-            <p class="subtitle">Mock visual en HTML + JavaScript para enseñar cómo podría verse tu juego en 2D: tres carriles, grid neón, Glitch Wall, turbo, obstáculos y recolección de Data Scraps.</p>
-            <p><span class="keys">Objetivo:</span> sobrevive, esquiva, recoge scraps y usa Turbo para romper obstáculos durante 1.5 segundos.</p>
+        <div class="hud-card status-box" id="statusText">Match forms with cores to recover integrity and push the wall back.</div>
+
+        <div class="controls-box hud-card">
+          <strong>Controls</strong><br />
+          W / Up = move up one lane<br />
+          S / Down = move down one lane<br />
+          A / D or 1 / 2 / 3 = switch form<br />
+          Space = turbo burst<br />
+          Esc = pause
+        </div>
+
+        <div class="legend hud-card">
+          <strong>Survival Loop</strong><br />
+          Yellow scraps charge turbo.<br />
+          Matching cores heal integrity.<br />
+          Red relay pickups push the wall back.<br />
+          Score shards spike points and combo.
+        </div>
+
+        <div class="warning" id="warning">GLITCH CLOSE</div>
+
+        <div class="turbo-wrap hud-card">
+          <div class="meter-label" id="meterLabel">Turbo 0%</div>
+          <div class="meter">
+            <div class="meter-fill turbo-fill" id="meterFill"></div>
+          </div>
+        </div>
+
+        <div class="overlay show" id="menuOverlay">
+          <div class="panel main-panel">
+            <h1 class="title">Neon Drifter 2049</h1>
+            <p class="subtitle">Endless synthwave survival racing through a collapsing network. Hold the lanes, manage your form, and keep the Glitch Wall from swallowing the run.</p>
+
+            <div class="panel-grid">
+              <div class="panel-section">
+                <h2>Run Goal</h2>
+                <p>Survive as long as possible. Score climbs forever until integrity reaches zero or the wall catches you.</p>
+                <p>Difficulty ramps in phases. Every 15 seconds the whole stream gets faster, and every 1000 score the spawn table escalates.</p>
+              </div>
+
+              <div class="panel-section">
+                <h2>Forms</h2>
+                <p>Switch between <span class="accent-cyan">Circle</span>, <span class="accent-magenta">Triangle</span>, and <span class="accent-yellow">Square</span>.</p>
+                <p>Only matching shape cores restore integrity and calm the wall. Wrong form means a mismatch penalty.</p>
+              </div>
+
+              <div class="panel-section">
+                <h2>Controls</h2>
+                <p><span class="keys">W / Up</span> and <span class="keys">S / Down</span> change lanes.</p>
+                <p><span class="keys">A / D</span> cycle forms, or use <span class="keys">1 / 2 / 3</span> for direct selection.</p>
+                <p><span class="keys">Space</span> triggers turbo at 100%. <span class="keys">Esc</span> pauses during a run.</p>
+              </div>
+
+              <div class="panel-section">
+                <h2>Pickups</h2>
+                <p>Turbo scraps keep momentum high. Wall relays create breathing room. Score shards build combo. Matching cores are the main recovery tool.</p>
+              </div>
+            </div>
+
             <div class="button-row">
               <button id="startBtn">Start Run</button>
+              <button data-mute-toggle id="menuMuteBtn">Sound: On</button>
             </div>
           </div>
         </div>
@@ -326,21 +121,44 @@
         <div class="overlay" id="pauseOverlay">
           <div class="panel">
             <h1 class="title">Paused</h1>
-            <p>Pulsa <span class="keys">ESC</span> para continuar o reinicia la partida.</p>
+            <p class="subtitle">The stream is frozen. Resume when you are ready, restart the run, or return to the main menu.</p>
+            <div class="panel-section inline-help">
+              <h2>Controls</h2>
+              <p>W / Up and S / Down move between lanes. A / D or 1 / 2 / 3 switch forms. Space uses turbo.</p>
+            </div>
             <div class="button-row">
               <button id="resumeBtn">Resume</button>
-              <button id="restartFromPauseBtn">Restart</button>
+              <button id="restartFromPauseBtn">Restart Run</button>
+              <button id="menuBtn">Main Menu</button>
+              <button data-mute-toggle id="pauseMuteBtn">Sound: On</button>
             </div>
           </div>
         </div>
 
         <div class="overlay" id="gameOverOverlay">
           <div class="panel">
-            <h1 class="title">Game Over</h1>
-            <p id="gameOverText">La Glitch Wall te alcanzó.</p>
-            <p>Pulsa <span class="keys">R</span> o reinicia para intentarlo otra vez.</p>
+            <h1 class="title">Run Collapsed</h1>
+            <p class="subtitle" id="gameOverText">The Glitch Wall consumed the route.</p>
+
+            <div class="summary-grid">
+              <div class="summary-cell">
+                <span class="summary-label">Final Score</span>
+                <span class="summary-value" id="summaryScore">000000</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Time Survived</span>
+                <span class="summary-value" id="summaryTime">00:00</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Highest Phase</span>
+                <span class="summary-value" id="summaryPhase">01</span>
+              </div>
+            </div>
+
             <div class="button-row">
               <button id="restartBtn">Restart Run</button>
+              <button id="menuFromGameOverBtn">Main Menu</button>
+              <button data-mute-toggle id="gameOverMuteBtn">Sound: On</button>
             </div>
           </div>
         </div>
@@ -348,585 +166,6 @@
     </div>
   </div>
 
-  <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-
-    const scoreEl = document.getElementById('score');
-    const phaseEl = document.getElementById('phase');
-    const meterFill = document.getElementById('meterFill');
-    const meterLabel = document.getElementById('meterLabel');
-    const warningEl = document.getElementById('warning');
-
-    const startOverlay = document.getElementById('startOverlay');
-    const pauseOverlay = document.getElementById('pauseOverlay');
-    const gameOverOverlay = document.getElementById('gameOverOverlay');
-    const gameOverText = document.getElementById('gameOverText');
-
-    const startBtn = document.getElementById('startBtn');
-    const resumeBtn = document.getElementById('resumeBtn');
-    const restartBtn = document.getElementById('restartBtn');
-    const restartFromPauseBtn = document.getElementById('restartFromPauseBtn');
-
-    const W = canvas.width;
-    const H = canvas.height;
-    const lanes = [210, 360, 510];
-    const keys = {};
-
-    let state = 'start';
-    let lastTime = 0;
-    let spawnTimer = 0;
-    let scrapTimer = 0;
-    let gridOffset = 0;
-    let stars = [];
-    let particles = [];
-    let obstacles = [];
-    let scraps = [];
-    let distance = 0;
-    let score = 0;
-    let shake = 0;
-    let flash = 0;
-
-    const player = {
-      x: 185,
-      y: lanes[1],
-      width: 52,
-      height: 34,
-      lane: 1,
-      targetY: lanes[1],
-      turbo: 0,
-      turboActive: 0,
-      alive: true,
-      trailTick: 0,
-      hitReason: ''
-    };
-
-    const glitchWall = {
-      x: 0,
-      baseSpeed: 45
-    };
-
-    function resetGame() {
-      state = 'running';
-      spawnTimer = 0;
-      scrapTimer = 0;
-      gridOffset = 0;
-      particles = [];
-      obstacles = [];
-      scraps = [];
-      distance = 0;
-      score = 0;
-      shake = 0;
-      flash = 0;
-      player.y = lanes[1];
-      player.lane = 1;
-      player.targetY = lanes[1];
-      player.turbo = 0;
-      player.turboActive = 0;
-      player.alive = true;
-      player.hitReason = '';
-      glitchWall.x = 0;
-      updateHUD();
-      hideAllOverlays();
-    }
-
-    function hideAllOverlays() {
-      startOverlay.classList.remove('show');
-      pauseOverlay.classList.remove('show');
-      gameOverOverlay.classList.remove('show');
-    }
-
-    function setPaused(paused) {
-      if (paused && state === 'running') {
-        state = 'paused';
-        pauseOverlay.classList.add('show');
-      } else if (!paused && state === 'paused') {
-        state = 'running';
-        pauseOverlay.classList.remove('show');
-      }
-    }
-
-    function spawnObstacle() {
-      const lane = Math.floor(Math.random() * 3);
-      const type = Math.random() < 0.35 ? 'laser' : 'pillar';
-      const width = type === 'laser' ? 36 : 56;
-      const height = type === 'laser' ? 110 : 72;
-
-      obstacles.push({
-        x: W + 40,
-        y: lanes[lane],
-        width,
-        height,
-        lane,
-        type
-      });
-    }
-
-    function spawnScrap() {
-      const lane = Math.floor(Math.random() * 3);
-      scraps.push({
-        x: W + 40,
-        y: lanes[lane],
-        size: 16,
-        lane,
-        pulse: Math.random() * Math.PI * 2
-      });
-    }
-
-    function emitTrail() {
-      particles.push({
-        x: player.x - 18,
-        y: player.y,
-        vx: -80 - Math.random() * 80,
-        vy: (Math.random() - 0.5) * 24,
-        life: 0.45,
-        maxLife: 0.45,
-        color: player.turboActive > 0 ? '#fff08e' : '#00f6ff',
-        size: 2 + Math.random() * 4
-      });
-    }
-
-    function burst(x, y, color, count = 18) {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 80 + Math.random() * 180;
-        particles.push({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 0.65,
-          maxLife: 0.65,
-          color,
-          size: 2 + Math.random() * 5
-        });
-      }
-    }
-
-    function rectsOverlap(a, b) {
-      return (
-        a.x < b.x + b.width &&
-        a.x + a.width > b.x &&
-        a.y < b.y + b.height &&
-        a.y + a.height > b.y
-      );
-    }
-
-    function playerBounds() {
-      return {
-        x: player.x - player.width / 2,
-        y: player.y - player.height / 2,
-        width: player.width,
-        height: player.height
-      };
-    }
-
-    function endRun(reason) {
-      if (!player.alive) return;
-      player.alive = false;
-      state = 'gameover';
-      player.hitReason = reason;
-      gameOverText.textContent = reason;
-      gameOverOverlay.classList.add('show');
-      flash = 0.6;
-      shake = 18;
-      burst(player.x, player.y, '#ff4d6d', 28);
-    }
-
-    function updateHUD() {
-      scoreEl.textContent = String(Math.floor(score)).padStart(6, '0');
-      const phase = Math.min(9, 1 + Math.floor(distance / 900));
-      phaseEl.textContent = String(phase).padStart(2, '0');
-      meterFill.style.width = `${player.turbo}%`;
-      meterLabel.textContent = `Turbo Meter — ${Math.round(player.turbo)}%`;
-
-      const danger = glitchWall.x > 90;
-      warningEl.classList.toggle('active', danger && state === 'running');
-    }
-
-    function initStars() {
-      stars = Array.from({ length: 85 }, () => ({
-        x: Math.random() * W,
-        y: Math.random() * H * 0.65,
-        size: Math.random() * 2 + 0.5,
-        speed: Math.random() * 14 + 6,
-        alpha: Math.random() * 0.7 + 0.2
-      }));
-    }
-
-    function activateTurbo() {
-      if (player.turbo >= 100 && player.turboActive <= 0 && state === 'running' && player.alive) {
-        player.turbo = 0;
-        player.turboActive = 1.5;
-        flash = 0.2;
-        burst(player.x, player.y, '#ffe45b', 26);
-      }
-    }
-
-    function moveLane(direction) {
-      player.lane = Math.max(0, Math.min(2, player.lane + direction));
-      player.targetY = lanes[player.lane];
-    }
-
-    function update(dt) {
-      if (state !== 'running') return;
-
-      const turboSpeedBoost = player.turboActive > 0 ? 210 : 0;
-      const difficulty = 1 + distance / 1800;
-      const scrollSpeed = 330 + difficulty * 45 + turboSpeedBoost;
-      const wallCatchSpeed = glitchWall.baseSpeed + difficulty * 9 - (player.turboActive > 0 ? 40 : 0);
-
-      distance += dt * (scrollSpeed * 0.12);
-      score = distance * (1 + difficulty * 0.35 + (player.turboActive > 0 ? 0.5 : 0));
-      gridOffset += dt * scrollSpeed * 0.6;
-      glitchWall.x += dt * wallCatchSpeed;
-
-      const desiredDistance = 130 + Math.sin(distance * 0.01) * 12;
-      const actualDistance = player.x - glitchWall.x;
-      if (actualDistance > desiredDistance) {
-        glitchWall.x += dt * 14;
-      }
-
-      player.y += (player.targetY - player.y) * Math.min(1, dt * 14);
-      player.trailTick += dt;
-      if (player.trailTick > 0.03) {
-        player.trailTick = 0;
-        emitTrail();
-      }
-
-      if (player.turboActive > 0) {
-        player.turboActive -= dt;
-        if (player.turboActive < 0) player.turboActive = 0;
-      }
-
-      spawnTimer += dt;
-      scrapTimer += dt;
-
-      const obstacleRate = Math.max(0.65, 1.45 - difficulty * 0.09);
-      const scrapRate = Math.max(1.25, 2.1 - difficulty * 0.04);
-
-      if (spawnTimer >= obstacleRate) {
-        spawnTimer = 0;
-        spawnObstacle();
-      }
-
-      if (scrapTimer >= scrapRate) {
-        scrapTimer = 0;
-        if (Math.random() < 0.9) spawnScrap();
-      }
-
-      obstacles.forEach(obj => {
-        obj.x -= dt * scrollSpeed;
-      });
-
-      scraps.forEach(obj => {
-        obj.x -= dt * (scrollSpeed * 0.95);
-        obj.pulse += dt * 6;
-      });
-
-      obstacles = obstacles.filter(obj => obj.x + obj.width > -80);
-      scraps = scraps.filter(obj => obj.x + obj.size > -80);
-
-      const p = playerBounds();
-
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const o = obstacles[i];
-        const hitbox = {
-          x: o.x - o.width / 2,
-          y: o.y - o.height / 2,
-          width: o.width,
-          height: o.height
-        };
-
-        if (rectsOverlap(p, hitbox)) {
-          if (player.turboActive > 0) {
-            burst(o.x, o.y, '#ffe45b', 16);
-            obstacles.splice(i, 1);
-            shake = Math.max(shake, 10);
-          } else {
-            endRun('Impactaste contra un obstáculo del grid.');
-            return;
-          }
-        }
-      }
-
-      for (let i = scraps.length - 1; i >= 0; i--) {
-        const s = scraps[i];
-        const hitbox = {
-          x: s.x - 18,
-          y: s.y - 18,
-          width: 36,
-          height: 36
-        };
-
-        if (rectsOverlap(p, hitbox)) {
-          player.turbo = Math.min(100, player.turbo + 20);
-          burst(s.x, s.y, '#ffe45b', 12);
-          scraps.splice(i, 1);
-        }
-      }
-
-      if (player.x - player.width / 2 <= glitchWall.x + 14) {
-        endRun('La Glitch Wall te alcanzó.');
-        return;
-      }
-
-      particles.forEach(p => {
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.life -= dt;
-      });
-      particles = particles.filter(p => p.life > 0);
-
-      stars.forEach(s => {
-        s.x -= dt * s.speed * (1 + difficulty * 0.18);
-        if (s.x < -10) {
-          s.x = W + 10;
-          s.y = Math.random() * H * 0.65;
-        }
-      });
-
-      if (shake > 0) shake = Math.max(0, shake - dt * 35);
-      if (flash > 0) flash = Math.max(0, flash - dt * 1.8);
-
-      updateHUD();
-    }
-
-    function drawBackground() {
-      ctx.fillStyle = '#05070d';
-      ctx.fillRect(0, 0, W, H);
-
-      const horizonY = 170;
-
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      skyGrad.addColorStop(0, '#0b1024');
-      skyGrad.addColorStop(0.55, '#0b0718');
-      skyGrad.addColorStop(1, '#04050a');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, W, H);
-
-      for (const s of stars) {
-        ctx.globalAlpha = s.alpha;
-        ctx.fillStyle = '#eaffff';
-        ctx.fillRect(s.x, s.y, s.size, s.size);
-      }
-      ctx.globalAlpha = 1;
-
-      const sunX = 1000;
-      const sunY = 120;
-      const sun = ctx.createRadialGradient(sunX, sunY, 6, sunX, sunY, 120);
-      sun.addColorStop(0, 'rgba(255, 84, 187, 0.9)');
-      sun.addColorStop(0.45, 'rgba(162, 74, 255, 0.35)');
-      sun.addColorStop(1, 'rgba(162, 74, 255, 0)');
-      ctx.fillStyle = sun;
-      ctx.beginPath();
-      ctx.arc(sunX, sunY, 120, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = 'rgba(0,246,255,0.17)';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 18; i++) {
-        const t = i / 17;
-        const y = horizonY + t * t * 520;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(W, y);
-        ctx.stroke();
-      }
-
-      const vSpacing = 68;
-      const vOffset = gridOffset % vSpacing;
-      for (let x = -W; x < W * 2; x += vSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(W / 2 + (x + vOffset - W / 2) * 0.16, horizonY);
-        ctx.lineTo(x + vOffset, H);
-        ctx.strokeStyle = 'rgba(255,54,214,0.18)';
-        ctx.stroke();
-      }
-
-      lanes.forEach((laneY, index) => {
-        ctx.strokeStyle = index === player.lane ? 'rgba(0,246,255,0.3)' : 'rgba(255,255,255,0.06)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([16, 16]);
-        ctx.beginPath();
-        ctx.moveTo(0, laneY + 36);
-        ctx.lineTo(W, laneY + 36);
-        ctx.stroke();
-      });
-      ctx.setLineDash([]);
-    }
-
-    function drawGlitchWall() {
-      const width = Math.max(46, glitchWall.x + 10);
-      const grad = ctx.createLinearGradient(0, 0, width, 0);
-      grad.addColorStop(0, 'rgba(255, 40, 90, 0.95)');
-      grad.addColorStop(0.5, 'rgba(255, 70, 120, 0.45)');
-      grad.addColorStop(1, 'rgba(255, 70, 120, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width, H);
-
-      for (let y = 0; y < H; y += 12) {
-        const w = 26 + Math.random() * 36;
-        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(255,255,255,0.08)' : 'rgba(255,77,109,0.18)';
-        ctx.fillRect(glitchWall.x - Math.random() * 18, y, w, 5);
-      }
-    }
-
-    function drawPlayer() {
-      const x = player.x;
-      const y = player.y;
-      const glow = player.turboActive > 0 ? '#ffe45b' : '#00f6ff';
-
-      ctx.save();
-      ctx.translate(x, y);
-
-      ctx.shadowBlur = player.turboActive > 0 ? 32 : 24;
-      ctx.shadowColor = glow;
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.moveTo(-28, 0);
-      ctx.lineTo(-6, -18);
-      ctx.lineTo(24, -8);
-      ctx.lineTo(28, 0);
-      ctx.lineTo(24, 8);
-      ctx.lineTo(-6, 18);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(255,255,255,0.88)';
-      ctx.fillRect(-6, -4, 18, 8);
-
-      if (player.turboActive > 0) {
-        ctx.strokeStyle = 'rgba(255, 228, 91, 0.85)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, 40 + Math.sin(performance.now() * 0.02) * 4, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-
-    function drawObstacle(o) {
-      ctx.save();
-      ctx.translate(o.x, o.y);
-      ctx.shadowBlur = 24;
-      ctx.shadowColor = '#ff36d6';
-
-      if (o.type === 'laser') {
-        ctx.fillStyle = '#ff36d6';
-        ctx.fillRect(-o.width / 2, -o.height / 2, o.width, o.height);
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fillRect(-4, -o.height / 2, 8, o.height);
-      } else {
-        ctx.fillStyle = '#a530ff';
-        ctx.fillRect(-o.width / 2, -o.height / 2, o.width, o.height);
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-o.width / 2, -o.height / 2, o.width, o.height);
-      }
-
-      ctx.restore();
-    }
-
-    function drawScrap(s) {
-      const pulse = 1 + Math.sin(s.pulse) * 0.1;
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.scale(pulse, pulse);
-      ctx.rotate(Math.PI / 4);
-      ctx.shadowBlur = 22;
-      ctx.shadowColor = '#ffe45b';
-      ctx.fillStyle = '#ffe45b';
-      ctx.fillRect(-12, -12, 24, 24);
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.fillRect(-4, -4, 8, 8);
-      ctx.restore();
-    }
-
-    function drawParticles() {
-      for (const p of particles) {
-        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-        ctx.fillStyle = p.color;
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-    }
-
-    function drawFlash() {
-      if (flash <= 0) return;
-      ctx.fillStyle = `rgba(255,255,255,${flash * 0.22})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    function render() {
-      ctx.save();
-      if (shake > 0) {
-        ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-      }
-
-      drawBackground();
-      drawGlitchWall();
-      scraps.forEach(drawScrap);
-      obstacles.forEach(drawObstacle);
-      drawParticles();
-      drawPlayer();
-      drawFlash();
-
-      ctx.restore();
-    }
-
-    function frame(time) {
-      const dt = Math.min(0.033, (time - lastTime) / 1000 || 0);
-      lastTime = time;
-      update(dt);
-      render();
-      requestAnimationFrame(frame);
-    }
-
-    document.addEventListener('keydown', (e) => {
-      keys[e.code] = true;
-
-      if (['ArrowUp', 'ArrowDown', 'Space', 'Escape'].includes(e.code)) {
-        e.preventDefault();
-      }
-
-      if ((e.code === 'KeyW' || e.code === 'ArrowUp') && state === 'running') {
-        moveLane(-1);
-      }
-      if ((e.code === 'KeyS' || e.code === 'ArrowDown') && state === 'running') {
-        moveLane(1);
-      }
-      if (e.code === 'Space') {
-        activateTurbo();
-      }
-      if (e.code === 'Escape') {
-        if (state === 'running') setPaused(true);
-        else if (state === 'paused') setPaused(false);
-      }
-      if (e.code === 'KeyR' && state === 'gameover') {
-        resetGame();
-      }
-    });
-
-    document.addEventListener('keyup', (e) => {
-      keys[e.code] = false;
-    });
-
-    startBtn.addEventListener('click', resetGame);
-    resumeBtn.addEventListener('click', () => setPaused(false));
-    restartBtn.addEventListener('click', resetGame);
-    restartFromPauseBtn.addEventListener('click', resetGame);
-
-    initStars();
-    updateHUD();
-    requestAnimationFrame(frame);
-  </script>
+  <script src="game.js"></script>
 </body>
 </html>
