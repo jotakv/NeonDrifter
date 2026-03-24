@@ -409,11 +409,34 @@ function formatTime(seconds) {
 }
 
 function formatShape(shape) {
+  if (!shape) {
+    return 'Unknown';
+  }
+
   return shape.charAt(0).toUpperCase() + shape.slice(1);
 }
 
 function getPhaseConfig() {
-  return PHASES[Math.min(PHASES.length - 1, game.phase - 1)];
+  if (!Array.isArray(PHASES) || PHASES.length === 0) {
+    return {
+      name: 'Endless Drift',
+      obstacleDelay: [1.3, 1.6],
+      pickupDelay: [0.85, 1.1],
+      hazardWeights: { blocker: 1, laser: 0, barrier: 0, drone: 0 },
+      waveWeights: { single: 1, staggered: 0, safeLane: 0, double: 0, zigzag: 0 },
+      pickupWeights: { turbo: 0.25, core: 0.45, score: 0.2, push: 0.1 }
+    };
+  }
+
+  const phaseNumber = Number.isFinite(game.phase) ? game.phase : 1;
+  const index = clamp(Math.floor(phaseNumber) - 1, 0, PHASES.length - 1);
+  const config = PHASES[index];
+
+  if (!config) {
+    return PHASES[PHASES.length - 1];
+  }
+
+  return config;
 }
 
 function getPlayerBounds() {
@@ -459,10 +482,10 @@ function initStars() {
 
 function showOverlay(name) {
   Object.values(ui.overlays).forEach((overlay) => {
-    overlay.classList.remove('show');
+    overlay?.classList.remove('show');
   });
 
-  if (name) {
+  if (name && ui.overlays[name]) {
     ui.overlays[name].classList.add('show');
   }
 }
@@ -526,13 +549,51 @@ function updateMuteButtons() {
 }
 
 function updateSummary(reason) {
-  ui.gameOverText.textContent = reason;
-  ui.summaryScore.textContent = String(Math.floor(game.score)).padStart(6, '0');
-  ui.summaryTime.textContent = formatTime(game.timeAlive);
-  ui.summaryPhase.textContent = String(game.highestPhase).padStart(2, '0');
+  if (ui.gameOverText) {
+    ui.gameOverText.textContent = reason;
+  }
+  if (ui.summaryScore) {
+    ui.summaryScore.textContent = String(Math.floor(game.score)).padStart(6, '0');
+  }
+  if (ui.summaryTime) {
+    ui.summaryTime.textContent = formatTime(game.timeAlive);
+  }
+  if (ui.summaryPhase) {
+    ui.summaryPhase.textContent = String(game.highestPhase).padStart(2, '0');
+  }
+}
+
+function setText(node, value) {
+  if (!node) {
+    return;
+  }
+  node.textContent = String(value);
+}
+
+function setWidth(node, value) {
+  if (!node) {
+    return;
+  }
+  node.style.width = value;
+}
+
+function setColor(node, value) {
+  if (!node) {
+    return;
+  }
+  node.style.color = value;
+}
+
+function toggleClass(node, className, enabled) {
+  if (!node) {
+    return;
+  }
+  node.classList.toggle(className, Boolean(enabled));
 }
 
 function updateHUD(force = false) {
+  const phaseConfig = getPhaseConfig();
+  const phaseName = phaseConfig?.name || 'Endless Drift';
   const comboMultiplier = (1 + game.combo * 0.12).toFixed(1);
   const pressurePercent = Math.round(Math.max(glitchWall.pressure, glitchWall.danger) * 100);
   const pressureLabel =
@@ -545,7 +606,7 @@ function updateHUD(force = false) {
     score: String(Math.floor(game.score)).padStart(6, '0'),
     timeAlive: formatTime(game.timeAlive),
     phaseValue: String(game.phase).padStart(2, '0'),
-    phaseName: getPhaseConfig().name,
+    phaseName,
     comboValue: `Combo x${comboMultiplier}`,
     integrityValue: `${Math.round(player.integrity)} / ${player.maxIntegrity}`,
     shapeName: formatShape(player.shape),
@@ -556,7 +617,7 @@ function updateHUD(force = false) {
 
   for (const [key, value] of Object.entries(nextHUD)) {
     if (force || game.lastHUD[key] !== value) {
-      ui[key].textContent = value;
+      setText(ui[key], value);
       game.lastHUD[key] = value;
     }
   }
@@ -566,30 +627,30 @@ function updateHUD(force = false) {
   const pressureWidth = `${pressurePercent}%`;
 
   if (force || game.lastHUD.integrityWidth !== integrityWidth) {
-    ui.integrityFill.style.width = integrityWidth;
+    setWidth(ui.integrityFill, integrityWidth);
     game.lastHUD.integrityWidth = integrityWidth;
   }
 
   if (force || game.lastHUD.turboWidth !== turboWidth) {
-    ui.meterFill.style.width = turboWidth;
+    setWidth(ui.meterFill, turboWidth);
     game.lastHUD.turboWidth = turboWidth;
   }
 
   if (force || game.lastHUD.pressureWidth !== pressureWidth) {
-    ui.pressureFill.style.width = pressureWidth;
+    setWidth(ui.pressureFill, pressureWidth);
     game.lastHUD.pressureWidth = pressureWidth;
   }
 
   if (force || game.lastHUD.statusTone !== game.statusTone) {
-    ui.statusText.style.color = game.statusTone;
+    setColor(ui.statusText, game.statusTone);
     game.lastHUD.statusTone = game.statusTone;
   }
 
   const warningActive = game.state === GAME_STATE.PLAYING && glitchWall.danger > 0.48;
-  ui.warning.classList.toggle('active', warningActive);
+  toggleClass(ui.warning, 'active', warningActive);
 
   ui.formBadges.forEach((badge) => {
-    badge.classList.toggle('active', badge.dataset.formBadge === player.shape);
+    toggleClass(badge, 'active', badge.dataset.formBadge === player.shape);
   });
 }
 
@@ -951,7 +1012,8 @@ function updateProgression(dt) {
     game.phase = nextPhase;
     game.highestPhase = Math.max(game.highestPhase, game.phase);
     pushWall(0.06, 18);
-    setStatus(`Phase ${String(game.phase).padStart(2, '0')} online: ${getPhaseConfig().name}.`, 2.0, COLORS.cyan);
+    const phaseName = getPhaseConfig()?.name || 'Endless Drift';
+    setStatus(`Phase ${String(game.phase).padStart(2, '0')} online: ${phaseName}.`, 2.0, COLORS.cyan);
     burst(player.x + 24, player.y, COLORS.cyan, 14, 0.7);
     audio.ui();
   }
@@ -1671,36 +1733,36 @@ function bindEvents() {
     }
   });
 
-  ui.buttons.start.addEventListener('click', () => {
+  ui.buttons.start?.addEventListener('click', () => {
     audio.unlock();
     audio.ui();
     startRun();
   });
 
-  ui.buttons.resume.addEventListener('click', () => {
+  ui.buttons.resume?.addEventListener('click', () => {
     audio.unlock();
     resumeGame();
   });
 
-  ui.buttons.restart.addEventListener('click', () => {
+  ui.buttons.restart?.addEventListener('click', () => {
     audio.unlock();
     audio.ui();
     startRun();
   });
 
-  ui.buttons.restartFromPause.addEventListener('click', () => {
+  ui.buttons.restartFromPause?.addEventListener('click', () => {
     audio.unlock();
     audio.ui();
     startRun();
   });
 
-  ui.buttons.menu.addEventListener('click', () => {
+  ui.buttons.menu?.addEventListener('click', () => {
     audio.unlock();
     audio.ui();
     enterMenu();
   });
 
-  ui.buttons.menuFromGameOver.addEventListener('click', () => {
+  ui.buttons.menuFromGameOver?.addEventListener('click', () => {
     audio.unlock();
     audio.ui();
     enterMenu();
